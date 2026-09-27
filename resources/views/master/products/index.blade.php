@@ -718,6 +718,7 @@ $prodDataJs = $products->keyBy('id')->map(function($p) {
         'purchase_price' => (float)$p->purchase_price, 'selling_price' => (float)$p->selling_price,
         'stock' => $p->stock, 'min_stock' => $p->min_stock,
         'rack_location' => $p->rack_location, 'is_active' => $p->is_active,
+        'image_url' => $p->image ? asset('storage/' . $p->image) : null,
     ];
 })->toArray();
 @endphp
@@ -757,16 +758,17 @@ function viewProduk(id) {
 function editProduk(id) {
     const p = productsData[id]; if (!p) { alert('Data tidak ditemukan'); return; }
     document.getElementById('epForm').action = '/products/' + id;
-    document.getElementById('epCode').value         = p.code || '';
-    document.getElementById('epName').value         = p.name || '';
-    document.getElementById('epCategoryId').value   = p.category_id || '';
-    document.getElementById('epUnitId').value       = p.unit_id || '';
-    document.getElementById('epDesc').value         = p.description || '';
+    document.getElementById('epCode').value          = p.code || '';
+    document.getElementById('epName').value          = p.name || '';
+    document.getElementById('epCategoryId').value    = p.category_id || '';
+    document.getElementById('epUnitId').value        = p.unit_id || '';
+    document.getElementById('epDesc').value          = p.description || '';
     document.getElementById('epPurchasePrice').value = p.purchase_price || 0;
     document.getElementById('epSellingPrice').value  = p.selling_price || 0;
-    document.getElementById('epMinStock').value     = p.min_stock || 5;
-    document.getElementById('epRackLocation').value = p.rack_location || '';
-    document.getElementById('epIsActive').checked   = !!p.is_active;
+    document.getElementById('epMinStock').value      = p.min_stock || 5;
+    document.getElementById('epRackLocation').value  = p.rack_location || '';
+    document.getElementById('epIsActive').checked    = !!p.is_active;
+    loadEditImage(p.image_url || null);
     openModal('modalEditProduk');
 }
 
@@ -799,32 +801,53 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {{-- ======== MODAL TAMBAH PRODUK (disederhanakan: nama/kategori/satuan/deskripsi/rak) ======== --}}
 <div class="modal-backdrop" id="modalTambahProduk">
-    <div class="modal-box" style="max-width:560px;">
+    <div class="modal-box" style="max-width:580px;max-height:92vh;">
         <div class="modal-header">
             <div class="modal-title"><i class="fas fa-plus-circle" style="color:var(--primary)"></i> Tambah Produk Baru</div>
             <button class="modal-close" onclick="closeModal('modalTambahProduk')"><i class="fas fa-times"></i></button>
         </div>
-        <form method="POST" action="{{ route('products.store') }}">
+        <form method="POST" action="{{ route('products.store') }}" enctype="multipart/form-data">
             @csrf
             <div class="modal-body">
-                {{-- Kode auto-generate atau scan barcode --}}
+                {{-- Foto Produk --}}
+                <div class="form-group">
+                    <label class="form-label">Foto Produk</label>
+                    <div style="display:flex;gap:12px;align-items:flex-start;">
+                        <div id="npImagePreview"
+                            style="width:88px;height:88px;background:#f8fafc;border:2px dashed #e2e8f0;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;transition:border-color .15s;"
+                            onclick="document.getElementById('npImageInput').click()"
+                            onmouseover="this.style.borderColor='var(--primary)'"
+                            onmouseout="this.style.borderColor='#e2e8f0'">
+                            <div style="text-align:center;color:#94a3b8;" id="npImgPlaceholder">
+                                <i class="fas fa-image" style="font-size:24px;display:block;margin-bottom:4px;"></i>
+                                <span style="font-size:10px;">Klik upload</span>
+                            </div>
+                        </div>
+                        <div style="flex:1;">
+                            <input type="file" name="image" id="npImageInput" accept="image/*" style="display:none;" onchange="previewNewImage(this)">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('npImageInput').click()">
+                                <i class="fas fa-upload"></i> Pilih Foto
+                            </button>
+                            <div style="font-size:11px;color:#94a3b8;margin-top:6px;">JPG, PNG, maks 2MB. Opsional.</div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Kode / Barcode --}}
                 <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin-bottom:16px;">
                     <div style="font-size:12px;color:#15803d;font-weight:600;margin-bottom:8px;">
-                        <i class="fas fa-barcode"></i> Kode Produk — Scan barcode atau generate otomatis
+                        <i class="fas fa-barcode"></i> Kode Produk
                     </div>
                     <div style="display:flex;gap:8px;align-items:center;">
                         <input type="text" name="code" id="npCode" class="form-control"
-                            placeholder="Scan barcode produk atau kode manual"
+                            placeholder="Scan barcode atau ketik kode"
                             style="flex:1;font-family:monospace;font-weight:600;"
-                            autofocus
                             onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('npName').focus();}">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="autoGenerateCode()" title="Generate kode otomatis">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="autoGenerateCode()">
                             <i class="fas fa-sync-alt"></i> Generate
                         </button>
                     </div>
-                    <div style="font-size:11px;color:#64748b;margin-top:5px;">
-                        USB barcode reader: langsung scan ke field ini, tekan Enter untuk lanjut ke nama produk
-                    </div>
+                    <div style="font-size:11px;color:#64748b;margin-top:5px;">USB scanner: scan ke field ini lalu Enter</div>
                 </div>
 
                 <div class="form-group">
@@ -864,7 +887,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <textarea name="description" class="form-control" rows="2" placeholder="Deskripsi singkat produk..."></textarea>
                 </div>
 
-                {{-- Hidden defaults --}}
                 <input type="hidden" name="purchase_price" value="0">
                 <input type="hidden" name="selling_price" value="0">
                 <input type="hidden" name="stock" value="0">
@@ -881,7 +903,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {{-- ======== MODAL EDIT PRODUK ======== --}}
 <div class="modal-backdrop" id="modalEditProduk">
-    <div class="modal-box" style="max-width:700px;max-height:90vh;">
+    <div class="modal-box" style="max-width:700px;max-height:92vh;">
         <div class="modal-header">
             <div class="modal-title"><i class="fas fa-edit" style="color:#f59e0b"></i> Edit Produk</div>
             <button class="modal-close" onclick="closeModal('modalEditProduk')"><i class="fas fa-times"></i></button>
@@ -889,24 +911,41 @@ document.addEventListener('DOMContentLoaded', function() {
         <form method="POST" id="epForm" enctype="multipart/form-data">
             @csrf @method('PUT')
             <div class="modal-body">
+                {{-- Foto Produk --}}
+                <div class="form-group">
+                    <label class="form-label">Foto Produk</label>
+                    <div style="display:flex;gap:12px;align-items:flex-start;">
+                        <div id="epImagePreview"
+                            style="width:88px;height:88px;background:#f8fafc;border:2px dashed #e2e8f0;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;transition:border-color .15s;"
+                            onclick="document.getElementById('epImageInput').click()"
+                            onmouseover="this.style.borderColor='var(--primary)'"
+                            onmouseout="this.style.borderColor='#e2e8f0'">
+                            <div style="text-align:center;color:#94a3b8;" id="epImgPlaceholder">
+                                <i class="fas fa-image" style="font-size:24px;display:block;margin-bottom:4px;"></i>
+                                <span style="font-size:10px;">Klik ganti</span>
+                            </div>
+                        </div>
+                        <div style="flex:1;">
+                            <input type="file" name="image" id="epImageInput" accept="image/*" style="display:none;" onchange="previewEditImage(this)">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('epImageInput').click()">
+                                <i class="fas fa-upload"></i> Ganti Foto
+                            </button>
+                            <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Kosongkan jika tidak ingin mengubah foto.</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-row cols-2">
                     <div class="form-group">
                         <label class="form-label">Kode Produk <span class="required">*</span></label>
                         <input type="text" name="code" id="epCode" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Barcode</label>
-                        <div style="display:flex;gap:6px;">
-                            <input type="text" name="barcode" id="epBarcode" class="form-control" style="flex:1;">
-                            <button type="button" class="btn btn-secondary" onclick="generateBarcodeEdit()" title="Generate otomatis" style="flex-shrink:0;padding:8px 10px;"><i class="fas fa-magic"></i></button>
-                        </div>
+                        <label class="form-label">Nama Produk <span class="required">*</span></label>
+                        <input type="text" name="name" id="epName" class="form-control" required>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Nama Produk <span class="required">*</span></label>
-                    <input type="text" name="name" id="epName" class="form-control" required>
-                </div>
-                <div class="form-row cols-3">
+                <div class="form-row cols-2">
                     <div class="form-group">
                         <label class="form-label">Kategori <span class="required">*</span></label>
                         <select name="category_id" id="epCategoryId" class="form-control" required>
@@ -921,28 +960,23 @@ document.addEventListener('DOMContentLoaded', function() {
                             @foreach($allUnits as $u)<option value="{{ $u->id }}">{{ $u->name }} ({{ $u->symbol }})</option>@endforeach
                         </select>
                     </div>
+                </div>
+                <div class="form-row cols-2">
                     <div class="form-group">
-                        <label class="form-label">Supplier</label>
-                        <select name="supplier_id" id="epSupplierId" class="form-control">
-                            <option value="">-- Pilih --</option>
-                            @foreach($allSuppliers as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach
-                        </select>
+                        <label class="form-label">Harga Beli</label>
+                        <input type="number" name="purchase_price" id="epPurchasePrice" class="form-control" min="0" step="100">
+                        <div class="form-hint">Update otomatis saat Stok Masuk</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Harga Jual</label>
+                        <input type="number" name="selling_price" id="epSellingPrice" class="form-control" min="0" step="100">
+                        <div class="form-hint">Update otomatis saat Stok Masuk</div>
                     </div>
                 </div>
                 <div class="form-row cols-2">
                     <div class="form-group">
-                        <label class="form-label">Harga Beli <span class="required">*</span></label>
-                        <input type="number" name="purchase_price" id="epPurchasePrice" class="form-control" required min="0" step="100">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Harga Jual <span class="required">*</span></label>
-                        <input type="number" name="selling_price" id="epSellingPrice" class="form-control" required min="0" step="100">
-                    </div>
-                </div>
-                <div class="form-row cols-2">
-                    <div class="form-group">
-                        <label class="form-label">Min. Stok <span class="required">*</span></label>
-                        <input type="number" name="min_stock" id="epMinStock" class="form-control" required min="0">
+                        <label class="form-label">Min. Stok Alert</label>
+                        <input type="number" name="min_stock" id="epMinStock" class="form-control" min="0">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Lokasi Rak</label>
@@ -967,6 +1001,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 @endsection
+
 
 @push('scripts')
 <script>
@@ -1040,6 +1075,61 @@ function editTipe(id) {
     document.getElementById('etAffects').checked = !!t.affects_stock;
     document.getElementById('etActive').checked  = !!t.is_active;
     openModal('modalEditTipe');
+}
+
+// ---- Foto produk preview ----
+function previewNewImage(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const preview = document.getElementById('npImagePreview');
+        document.getElementById('npImgPlaceholder').style.display = 'none';
+        // Remove old img if any
+        const oldImg = preview.querySelector('img.preview-img');
+        if (oldImg) oldImg.remove();
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.className = 'preview-img';
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        preview.appendChild(img);
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+
+function previewEditImage(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const preview = document.getElementById('epImagePreview');
+        document.getElementById('epImgPlaceholder').style.display = 'none';
+        const oldImg = preview.querySelector('img.preview-img');
+        if (oldImg) oldImg.remove();
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.className = 'preview-img';
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        preview.appendChild(img);
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+
+// Tampilkan foto existing saat modal edit dibuka
+function loadEditImage(imageUrl) {
+    const preview = document.getElementById('epImagePreview');
+    const placeholder = document.getElementById('epImgPlaceholder');
+    const oldImg = preview.querySelector('img.preview-img');
+    if (oldImg) oldImg.remove();
+
+    if (imageUrl) {
+        placeholder.style.display = 'none';
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.className = 'preview-img';
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        preview.appendChild(img);
+    } else {
+        placeholder.style.display = '';
+    }
 }
 </script>
 @endpush
