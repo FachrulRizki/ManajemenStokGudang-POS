@@ -189,13 +189,25 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
-        if ($product->stock > 0) {
-            return back()->with('error', 'Produk tidak bisa dihapus karena masih memiliki stok.');
+        // Cek apakah produk masih punya transaksi POS yang tidak di-void
+        $hasPosTransactions = $product->transactionItems()
+            ->whereHas('transaction', fn($q) => $q->where('status', 'paid'))
+            ->exists();
+
+        if ($hasPosTransactions) {
+            return back()->with('error', "Produk \"{$product->name}\" tidak bisa dihapus karena sudah pernah digunakan dalam transaksi kasir.");
         }
+
+        // Hapus semua catatan stok masuk & keluar terkait produk ini
+        $product->stockIns()->delete();
+        $product->stockOuts()->delete();
+
+        // Reset stok ke 0 lalu hapus produk
+        $product->update(['stock' => 0]);
 
         ActivityLog::log('delete', 'products', "Hapus produk: {$product->name}", $product, $product->toArray());
         $product->delete();
 
-        return redirect()->route('products.index')->with('success', 'Produk berhasil dihapus.');
+        return redirect()->route('products.index')->with('success', "Produk \"{$product->name}\" berhasil dihapus beserta riwayat stoknya.");
     }
 }
