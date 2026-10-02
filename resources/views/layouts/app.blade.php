@@ -809,16 +809,85 @@
             .grid-4 { grid-template-columns: repeat(2, 1fr); }
             .grid-3 { grid-template-columns: repeat(2, 1fr); }
         }
+
         @media (max-width: 768px) {
+            /* Sidebar */
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
             .header { left: 0; }
             .header-toggle { display: flex; }
-            .main-wrapper { margin-left: 0; padding: 16px; }
+            .main-wrapper { margin-left: 0; padding: 12px; }
+
+            /* Grid */
             .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
             .form-row.cols-2, .form-row.cols-3 { grid-template-columns: 1fr; }
-            .page-header { flex-direction: column; gap: 12px; }
+
+            /* Page header */
+            .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .page-header .btn-group, .page-header .btn { width: 100%; justify-content: center; }
+
+            /* Modal — kritis di mobile */
+            .modal-backdrop { padding: 8px; align-items: flex-end; }
+            .modal-box {
+                max-height: 95vh;
+                max-width: 100% !important;
+                border-radius: 16px 16px 0 0;
+                margin-bottom: 0;
+            }
+            .modal-body { padding: 14px; }
+            .modal-header { padding: 12px 14px; }
+            .modal-footer { padding: 10px 14px; }
+
+            /* Filter bar — stack ke bawah */
+            .filter-bar { flex-direction: column; align-items: stretch; gap: 8px; }
+            .filter-bar .form-control,
+            .filter-bar .search-input { width: 100% !important; min-width: 0 !important; max-width: 100% !important; }
+            .filter-bar .btn { width: 100%; justify-content: center; }
+            .search-input { max-width: 100%; }
+
+            /* Stat cards stack */
+            .stat-card { flex-direction: row; }
+
+            /* Table scroll hint */
+            .table-wrapper { -webkit-overflow-scrolling: touch; }
+            table { min-width: 500px; }
+
+            /* Tabs */
+            .master-tab-nav, .stok-tab-nav, .report-tab-nav, .perm-tab-nav { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+            /* POS kasir layout */
+            .pos-wrap { grid-template-columns: 1fr; height: auto; }
+            .pos-right { min-height: 400px; }
+            .product-grid { grid-template-columns: repeat(2, 1fr); }
+
+            /* Breadcrumb */
+            .header-breadcrumb { font-size: 11px; display: none; }
+
+            /* Btn group */
+            .btn-group { flex-wrap: wrap; }
+
+            /* Header user name */
+            .header-user-name { display: none; }
+
+            /* Pagination */
+            .pagination-wrap { flex-direction: column; gap: 8px; text-align: center; }
         }
+
+        @media (max-width: 480px) {
+            /* Extra small */
+            .modal-backdrop { padding: 0; }
+            .modal-box { border-radius: 12px 12px 0 0; max-height: 98vh; }
+            .product-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .product-card { padding: 8px; }
+            .product-card-name { font-size: 11.5px; }
+            .stat-value { font-size: 20px !important; }
+            .page-title { font-size: 18px; }
+            tbody td { padding: 8px 10px; font-size: 12px; }
+            thead th { padding: 7px 10px; }
+        }
+
+        /* Selalu scrollable di dalam modal */
+        .modal-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
     </style>
     @stack('styles')
 </head>
