@@ -668,7 +668,7 @@
             z-index: 2000;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 16px;
         }
         .modal-backdrop.show { display: flex; }
         .modal-box {
@@ -676,10 +676,13 @@
             border-radius: var(--radius);
             box-shadow: var(--shadow-lg);
             width: 100%;
-            max-height: 90vh;
+            /* Modal tidak boleh lebih tinggi dari viewport dikurangi padding */
+            max-height: calc(100vh - 32px);
+            max-height: calc(100dvh - 32px);
             display: flex;
             flex-direction: column;
             animation: modalIn .18s ease;
+            overflow: hidden;
         }
         @keyframes modalIn {
             from { opacity: 0; transform: translateY(-12px) scale(.97); }
@@ -713,7 +716,7 @@
             transition: all .12s;
         }
         .modal-close:hover { background: #f1f5f9; color: #374151; }
-        .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; min-height: 0; }
         .modal-footer {
             display: flex;
             align-items: center;
@@ -808,86 +811,89 @@
         @media (max-width: 1024px) {
             .grid-4 { grid-template-columns: repeat(2, 1fr); }
             .grid-3 { grid-template-columns: repeat(2, 1fr); }
+            .pos-wrap { grid-template-columns: 1fr; height: auto; }
         }
 
         @media (max-width: 768px) {
-            /* Sidebar */
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
             .header { left: 0; }
             .header-toggle { display: flex; }
             .main-wrapper { margin-left: 0; padding: 12px; }
-
-            /* Grid */
-            .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
-            .form-row.cols-2, .form-row.cols-3 { grid-template-columns: 1fr; }
-
-            /* Page header */
-            .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
-            .page-header .btn-group, .page-header .btn { width: 100%; justify-content: center; }
-
-            /* Modal — kritis di mobile */
-            .modal-backdrop { padding: 8px; align-items: flex-end; }
-            .modal-box {
-                max-height: 95vh;
-                max-width: 100% !important;
-                border-radius: 16px 16px 0 0;
-                margin-bottom: 0;
-            }
-            .modal-body { padding: 14px; }
-            .modal-header { padding: 12px 14px; }
-            .modal-footer { padding: 10px 14px; }
-
-            /* Filter bar — stack ke bawah */
-            .filter-bar { flex-direction: column; align-items: stretch; gap: 8px; }
-            .filter-bar .form-control,
-            .filter-bar .search-input { width: 100% !important; min-width: 0 !important; max-width: 100% !important; }
-            .filter-bar .btn { width: 100%; justify-content: center; }
-            .search-input { max-width: 100%; }
-
-            /* Stat cards stack */
-            .stat-card { flex-direction: row; }
-
-            /* Table scroll hint */
-            .table-wrapper { -webkit-overflow-scrolling: touch; }
-            table { min-width: 500px; }
-
-            /* Tabs */
-            .master-tab-nav, .stok-tab-nav, .report-tab-nav, .perm-tab-nav { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-            /* POS kasir layout */
-            .pos-wrap { grid-template-columns: 1fr; height: auto; }
-            .pos-right { min-height: 400px; }
-            .product-grid { grid-template-columns: repeat(2, 1fr); }
-
-            /* Breadcrumb */
-            .header-breadcrumb { font-size: 11px; display: none; }
-
-            /* Btn group */
-            .btn-group { flex-wrap: wrap; }
-
-            /* Header user name */
-            .header-user-name { display: none; }
-
-            /* Pagination */
-            .pagination-wrap { flex-direction: column; gap: 8px; text-align: center; }
-        }
-
-        @media (max-width: 480px) {
-            /* Extra small */
-            .modal-backdrop { padding: 0; }
-            .modal-box { border-radius: 12px 12px 0 0; max-height: 98vh; }
-            .product-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-            .product-card { padding: 8px; }
-            .product-card-name { font-size: 11.5px; }
-            .stat-value { font-size: 20px !important; }
             .page-title { font-size: 18px; }
-            tbody td { padding: 8px 10px; font-size: 12px; }
-            thead th { padding: 7px 10px; }
+            .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr !important; }
+            .form-row.cols-2, .form-row.cols-3 { grid-template-columns: 1fr !important; }
+            .page-header { flex-direction: column; align-items: stretch; gap: 10px; }
+            .page-header > .btn, .page-header > .btn-group { width: 100%; }
+            .page-header > .btn-group .btn { flex: 1; justify-content: center; }
+            /* Modal */
+            .modal-backdrop { padding: 8px; }
+            .modal-box {
+                max-width: 100% !important;
+                max-height: calc(100vh - 16px) !important;
+                border-radius: 16px !important;
+            }
+            .modal-body   { padding: 14px 16px; }
+            .modal-header { padding: 13px 16px; }
+            .modal-footer { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+            .modal-footer .btn { flex: 1; min-width: 0; justify-content: center; }
+            /* Filter bar */
+            .filter-bar { flex-direction: column; align-items: stretch; gap: 8px; }
+            .filter-bar .form-control { width: 100% !important; min-width: 0 !important; }
+            .filter-bar .search-input { max-width: 100%; min-width: 0; }
+            .filter-bar .btn { width: 100%; justify-content: center; }
+            /* Table */
+            .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .card .table-wrapper table { min-width: 480px; }
+            tbody td { padding: 9px 11px; font-size: 12.5px; }
+            thead th { padding: 7px 11px; }
+            .card-body { padding: 14px !important; }
+            /* Tabs */
+            .master-tab-nav, .stok-tab-nav, .report-tab-nav, .perm-tab-nav {
+                overflow-x: auto; -webkit-overflow-scrolling: touch;
+            }
+            /* Header */
+            .header-breadcrumb { display: none; }
+            .header-user-name  { max-width: 70px; font-size: 12px; }
+            .btn-group { flex-wrap: wrap; }
+            /* POS */
+            .pos-wrap { grid-template-columns: 1fr; height: auto; gap: 12px; }
+            .pos-right { min-height: 350px; }
+            .product-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .shift-bar { flex-wrap: wrap; gap: 6px; }
+            .shift-bar .ms-auto, .shift-bar .btn-group { width: 100%; margin-left: 0; }
+            .shift-bar .btn-group .btn { flex: 1; }
+            .pagination-wrap { flex-direction: column; align-items: center; gap: 8px; }
+            /* Inline grid overrides */
+            [style*="grid-template-columns:1fr 380px"],
+            [style*="grid-template-columns: 1fr 380px"],
+            [style*="grid-template-columns:1fr 320px"],
+            [style*="grid-template-columns: 1fr 320px"],
+            [style*="grid-template-columns:300px 1fr"],
+            [style*="grid-template-columns: 300px 1fr"],
+            [style*="grid-template-columns:340px 1fr"],
+            [style*="grid-template-columns: 340px 1fr"],
+            [style*="grid-template-columns:380px 1fr"],
+            [style*="grid-template-columns: 380px 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
         }
 
-        /* Selalu scrollable di dalam modal */
-        .modal-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        @media (max-width: 540px) {
+            .main-wrapper { padding: 8px; }
+            .modal-backdrop { padding: 0; }
+            .modal-box {
+                max-height: 100vh !important;
+                border-radius: 0 !important;
+            }
+            .product-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+            .product-card { padding: 8px; }
+            .stat-value { font-size: 18px !important; }
+            .page-title  { font-size: 16px; }
+        }
+
+        /* Modal body always scrollable */
+        .modal-body { overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; min-height: 0; }
     </style>
     @stack('styles')
 </head>
