@@ -91,7 +91,7 @@
                         <label class="form-label">Logo Aplikasi</label>
                         <div id="logoPreview" style="width:100%;height:120px;background:#f8fafc;border:2px dashed #e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;overflow:hidden;cursor:pointer;" onclick="document.getElementById('logoInput').click()">
                             @if(!empty($settings['app_logo']->value))
-                                <img src="{{ asset('storage/'.$settings['app_logo']->value) }}" style="max-height:100px;max-width:100%;object-fit:contain;" id="logoImg">
+                                <img src="{{ asset('storage/'.$settings['app_logo']->value) }}" style="max-width:100%;object-fit:contain;" id="logoImg">
                             @else
                                 <div style="text-align:center;color:#94a3b8;" id="logoPlaceholder">
                                     <i class="fas fa-image" style="font-size:28px;margin-bottom:6px;"></i>
@@ -166,7 +166,7 @@ function previewFile(input, previewId) {
     const reader = new FileReader();
     reader.onload = e => {
         const box = document.getElementById(previewId);
-        box.innerHTML = `<img src="${e.target.result}" style="max-width:100%;max-height:100%;object-fit:contain;">`;
+        box.innerHTML = `<img src="${e.target.result}" style="max-width:100%;object-fit:contain;">`;
     };
     reader.readAsDataURL(input.files[0]);
 }

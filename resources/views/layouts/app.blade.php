@@ -660,32 +660,48 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
         /* --- Modal ------------------------------------------ */
+        /*
+         * MODAL SYSTEM — Fixed untuk semua browser termasuk iOS Safari/iPad
+         * Arsitektur: backdrop(fixed full screen) > box(flex column, max-height) > header(shrink:0) + body(scroll) + footer(shrink:0)
+         */
         .modal-backdrop {
             display: none;
             position: fixed;
-            inset: 0;
-            background: rgba(15,23,42,.45);
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%; height: 100%;
+            background: rgba(15,23,42,.5);
             z-index: 2000;
+            /* Flex untuk center modal */
             align-items: center;
             justify-content: center;
             padding: 16px;
+            box-sizing: border-box;
+            /* iOS Safari: pastikan touch events */
+            -webkit-tap-highlight-color: transparent;
         }
-        .modal-backdrop.show { display: flex; }
+        .modal-backdrop.show {
+            display: flex;
+        }
         .modal-box {
             background: #fff;
             border-radius: var(--radius);
-            box-shadow: var(--shadow-lg);
+            box-shadow: 0 20px 60px rgba(15,23,42,.2), 0 4px 16px rgba(15,23,42,.1);
             width: 100%;
-            /* Modal tidak boleh lebih tinggi dari viewport dikurangi padding */
-            max-height: calc(100vh - 32px);
-            max-height: calc(100dvh - 32px);
+            /*
+             * max-height pake percentage dari parent yang sudah fixed full screen
+             * Ini bekerja di semua zoom level dan semua browser
+             */
+            max-height: calc(100% - 32px);
+            /* Flex column wajib agar header/footer fixed, body scroll */
             display: flex;
             flex-direction: column;
-            animation: modalIn .18s ease;
-            overflow: hidden;
+            /* JANGAN pakai overflow:hidden — ini yang block scroll di iOS */
+            overflow: visible;
+            animation: modalIn .2s ease;
+            position: relative;
         }
         @keyframes modalIn {
-            from { opacity: 0; transform: translateY(-12px) scale(.97); }
+            from { opacity: 0; transform: translateY(-8px) scale(.98); }
             to   { opacity: 1; transform: translateY(0) scale(1); }
         }
         .modal-header {
@@ -693,8 +709,11 @@
             align-items: center;
             justify-content: space-between;
             padding: 16px 20px;
-            border-bottom: 1px solid #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+            /* WAJIB flex-shrink:0 agar header tidak ikut menyusut */
             flex-shrink: 0;
+            background: #fff;
+            border-radius: var(--radius) var(--radius) 0 0;
         }
         .modal-title {
             font-size: 15px;
@@ -714,17 +733,34 @@
             color: #94a3b8;
             font-size: 14px;
             transition: all .12s;
+            flex-shrink: 0;
         }
         .modal-close:hover { background: #f1f5f9; color: #374151; }
-        .modal-body { padding: 20px; overflow-y: auto; flex: 1; min-height: 0; }
+        /*
+         * modal-body: flex:1 + min-height:0 + overflow-y:auto
+         * min-height:0 WAJIB di flex child agar bisa shrink
+         * -webkit-overflow-scrolling:touch WAJIB untuk scroll di iOS Safari
+         */
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            flex: 1;
+            min-height: 0;
+            overscroll-behavior: contain;
+        }
         .modal-footer {
             display: flex;
             align-items: center;
             justify-content: flex-end;
             gap: 8px;
             padding: 14px 20px;
-            border-top: 1px solid #f1f5f9;
+            border-top: 1px solid #e2e8f0;
+            /* WAJIB flex-shrink:0 agar footer selalu kelihatan */
             flex-shrink: 0;
+            background: #fff;
+            border-radius: 0 0 var(--radius) var(--radius);
         }
         /* Detail rows inside modal */
         .detail-row {
@@ -830,7 +866,7 @@
             .modal-backdrop { padding: 8px; }
             .modal-box {
                 max-width: 100% !important;
-                max-height: calc(100vh - 16px) !important;
+                max-height: calc(100% - 16px) !important;
                 border-radius: 16px !important;
             }
             .modal-body   { padding: 14px 16px; }
@@ -881,10 +917,10 @@
 
         @media (max-width: 540px) {
             .main-wrapper { padding: 8px; }
-            .modal-backdrop { padding: 0; }
+            .modal-backdrop { padding: 4px; }
             .modal-box {
-                max-height: 100vh !important;
-                border-radius: 0 !important;
+                max-height: calc(100% - 8px) !important;
+                border-radius: 12px !important;
             }
             .product-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
             .product-card { padding: 8px; }
@@ -892,8 +928,14 @@
             .page-title  { font-size: 16px; }
         }
 
-        /* Modal body always scrollable */
-        .modal-body { overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; min-height: 0; }
+        /* Modal body always scrollable — iOS Safari fix */
+        .modal-body {
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            flex: 1 !important;
+            min-height: 0 !important;
+            overscroll-behavior: contain;
+        }
     </style>
     @stack('styles')
 </head>
@@ -1155,7 +1197,16 @@
         if (m) {
             m.classList.add('show');
             document.body.style.overflow = 'hidden';
-            // focus first input
+            // Pastikan modal-body bisa di-scroll
+            const body = m.querySelector('.modal-body');
+            if (body) {
+                body.scrollTop = 0;
+                // Force scroll style jika belum ter-set
+                body.style.overflowY = 'auto';
+                body.style.flex = '1';
+                body.style.minHeight = '0';
+            }
+            // Focus first input
             setTimeout(() => {
                 const inp = m.querySelector('input:not([type=hidden]):not([type=checkbox])');
                 if (inp) inp.focus();

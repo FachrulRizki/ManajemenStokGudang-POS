@@ -106,7 +106,7 @@
 .autocomplete-list {
     position:absolute; top:100%; left:0; right:0; background:#fff;
     border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1);
-    z-index:100; max-height:280px; overflow-y:auto; display:none;
+    z-index:100;  overflow-y:auto; display:none;
 }
 .autocomplete-item {
     display:flex; align-items:center; gap:10px; padding:8px 12px;

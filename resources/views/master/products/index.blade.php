@@ -801,7 +801,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {{-- ======== MODAL TAMBAH PRODUK (disederhanakan: nama/kategori/satuan/deskripsi/rak) ======== --}}
 <div class="modal-backdrop" id="modalTambahProduk">
-    <div class="modal-box" style="max-width:580px;max-height:92vh;">
+    <div class="modal-box" style="max-width:580px;">
         <div class="modal-header">
             <div class="modal-title"><i class="fas fa-plus-circle" style="color:var(--primary)"></i> Tambah Produk Baru</div>
             <button class="modal-close" onclick="closeModal('modalTambahProduk')"><i class="fas fa-times"></i></button>
@@ -903,7 +903,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {{-- ======== MODAL EDIT PRODUK ======== --}}
 <div class="modal-backdrop" id="modalEditProduk">
-    <div class="modal-box" style="max-width:700px;max-height:92vh;">
+    <div class="modal-box" style="max-width:700px;">
         <div class="modal-header">
             <div class="modal-title"><i class="fas fa-edit" style="color:#f59e0b"></i> Edit Produk</div>
             <button class="modal-close" onclick="closeModal('modalEditProduk')"><i class="fas fa-times"></i></button>
