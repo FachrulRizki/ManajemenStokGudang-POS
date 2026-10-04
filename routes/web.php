@@ -53,9 +53,13 @@ Route::middleware('auth')->group(function () {
     // Stok (multi-tab: masuk + keluar non-penjualan)
     Route::get('/stok', [StokController::class, 'index'])->name('stok.index');
     Route::post('/stok/masuk', [StokController::class, 'storeMasuk'])->name('stok.masuk.store');
+    Route::put('/stok/masuk/{stockIn}', [StokController::class, 'updateMasuk'])->name('stok.masuk.update');
     Route::delete('/stok/masuk/{stockIn}', [StokController::class, 'destroyMasuk'])->name('stok.masuk.destroy');
     Route::post('/stok/keluar', [StokController::class, 'storeKeluar'])->name('stok.keluar.store');
     Route::delete('/stok/keluar/{stockOut}', [StokController::class, 'destroyKeluar'])->name('stok.keluar.destroy');
+
+    // Cetak Barcode produk
+    Route::get('/products/{product}/barcode', [ProductController::class, 'barcode'])->name('products.barcode');
 
     // Metode Pembayaran
     Route::resource('payment-methods', PaymentMethodController::class)->except(['show', 'create', 'edit']);

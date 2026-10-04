@@ -139,6 +139,7 @@
                     <td style="text-align:center;">
                         <div class="btn-group" style="justify-content:center;">
                             <button type="button" class="btn btn-sm btn-secondary" title="Detail" onclick="viewProduk({{ $product->id }})"><i class="fas fa-eye"></i></button>
+                            <a href="{{ route('products.barcode', $product) }}" target="_blank" class="btn btn-sm btn-info" title="Cetak Barcode"><i class="fas fa-barcode"></i></a>
                             <button type="button" class="btn btn-sm btn-warning" title="Edit" onclick="editProduk({{ $product->id }})"><i class="fas fa-edit"></i></button>
                             <form method="POST" action="{{ route('products.destroy', $product) }}" onsubmit="return confirmDelete(this)">
                                 @csrf @method('DELETE')

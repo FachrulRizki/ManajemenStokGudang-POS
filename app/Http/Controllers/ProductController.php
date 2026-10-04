@@ -187,6 +187,17 @@ class ProductController extends Controller
         return redirect()->route('products.index')->with('success', 'Produk berhasil diperbarui.');
     }
 
+    public function barcode(Product $product)
+    {
+        // Pastikan produk punya barcode — generate jika belum ada
+        if (! $product->barcode) {
+            $barcode = 'PRD' . str_pad($product->id, 9, '0', STR_PAD_LEFT);
+            $product->update(['barcode' => $barcode]);
+        }
+
+        return view('master.products.barcode', compact('product'));
+    }
+
     public function destroy(Product $product)
     {
         // Cek apakah produk masih punya transaksi POS yang tidak di-void

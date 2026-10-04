@@ -85,21 +85,27 @@
 @php
 $stockInJson = $stockIns->keyBy('id')->map(function($si) {
     return [
-        'id'               => $si->id,
-        'reference_number' => $si->reference_number,
-        'transaction_date' => $si->transaction_date->format('d F Y'),
-        'product_name'     => $si->product->name ?? '-',
-        'product_code'     => $si->product->code ?? '-',
-        'unit_symbol'      => $si->product->unit->symbol ?? '',
-        'supplier_name'    => $si->supplier->name ?? '-',
-        'quantity'         => number_format($si->quantity),
-        'purchase_price'   => 'Rp ' . number_format($si->purchase_price, 0, ',', '.'),
-        'total_price'      => 'Rp ' . number_format($si->total_price, 0, ',', '.'),
-        'invoice_number'   => $si->invoice_number ?? '-',
-        'user_name'        => $si->user->name ?? '-',
-        'notes'            => $si->notes ?? '-',
-        'created_at'       => $si->created_at->format('d M Y H:i'),
-        'destroy_url'      => route('stok.masuk.destroy', $si->id),
+        'id'                  => $si->id,
+        'reference_number'    => $si->reference_number,
+        'transaction_date'    => $si->transaction_date->format('Y-m-d'),
+        'transaction_date_lbl'=> $si->transaction_date->format('d F Y'),
+        'product_name'        => $si->product->name ?? '-',
+        'product_code'        => $si->product->code ?? '-',
+        'unit_symbol'         => $si->product->unit->symbol ?? '',
+        'supplier_id'         => $si->supplier_id,
+        'supplier_name'       => $si->supplier->name ?? '-',
+        'quantity'            => $si->quantity,
+        'quantity_fmt'        => number_format($si->quantity),
+        'purchase_price'      => (float)$si->purchase_price,
+        'selling_price'       => (float)($si->product->selling_price ?? 0),
+        'purchase_price_fmt'  => 'Rp ' . number_format($si->purchase_price, 0, ',', '.'),
+        'total_price'         => 'Rp ' . number_format($si->total_price, 0, ',', '.'),
+        'invoice_number'      => $si->invoice_number ?? '',
+        'user_name'           => $si->user->name ?? '-',
+        'notes'               => $si->notes ?? '-',
+        'created_at'          => $si->created_at->format('d M Y H:i'),
+        'destroy_url'         => route('stok.masuk.destroy', $si->id),
+        'update_url'          => route('stok.masuk.update', $si->id),
     ];
 })->toArray();
 @endphp
@@ -136,6 +142,7 @@ $stockInJson = $stockIns->keyBy('id')->map(function($si) {
                     <td style="font-size:12px;color:#64748b;">{{ $si->user->name ?? '-' }}</td>
                     <td style="text-align:center;">
                         <div class="btn-group" style="justify-content:center;">
+                            <button type="button" class="btn btn-sm btn-warning" title="Edit" onclick="editMasuk({{ $si->id }})"><i class="fas fa-edit"></i></button>
                             <button type="button" class="btn btn-sm btn-secondary" title="Detail" onclick="showDetailMasuk({{ $si->id }})"><i class="fas fa-eye"></i></button>
                             <form method="POST" action="{{ route('stok.masuk.destroy', $si) }}" onsubmit="return confirmDelete(this)">
                                 @csrf @method('DELETE')
@@ -472,6 +479,81 @@ $stockOutJson = $stockOuts->keyBy('id')->map(function($so) {
         <div class="modal-footer" id="detailFooter"></div>
     </div>
 </div>
+
+{{-- ======== MODAL EDIT STOK MASUK ======== --}}
+<div class="modal-backdrop" id="modalEditMasuk">
+    <div class="modal-box" style="max-width:640px;">
+        <div class="modal-header">
+            <div class="modal-title"><i class="fas fa-edit" style="color:#f59e0b"></i> Edit Stok Masuk</div>
+            <button class="modal-close" onclick="closeModal('modalEditMasuk')"><i class="fas fa-times"></i></button>
+        </div>
+        <form method="POST" id="formEditMasuk">
+            @csrf @method('PUT')
+            <div class="modal-body">
+                <div id="editMasukRefBar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:8px 12px;background:#fef3c7;border-radius:8px;border:1px solid #fde68a;">
+                    <span style="font-size:12px;color:#d97706;font-weight:500;"><i class="fas fa-edit"></i> Edit Catatan</span>
+                    <span id="editMasukRef" style="font-family:monospace;font-weight:700;color:#d97706;font-size:13px;"></span>
+                </div>
+
+                <div class="alert alert-warning" style="margin-bottom:16px;font-size:12.5px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Mengubah jumlah akan otomatis menyesuaikan stok produk. Selisih qty akan ditambah/dikurangi dari stok saat ini.
+                </div>
+
+                <div id="editMasukProductInfo" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;display:none;">
+                    Produk: <strong id="editMasukProductName"></strong> &bull; Stok saat ini: <strong id="editMasukCurrentStock" style="color:#10b981;"></strong>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Supplier</label>
+                    <select name="supplier_id" id="emSupplierId" class="form-control">
+                        <option value="">-- Pilih Supplier --</option>
+                        @foreach($suppliers as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach
+                    </select>
+                </div>
+
+                <div class="form-row cols-3">
+                    <div class="form-group">
+                        <label class="form-label">Harga Beli/Unit <span class="required">*</span></label>
+                        <input type="number" name="purchase_price" id="emPurchasePrice" class="form-control" min="0" step="100" required oninput="calcEmTotal()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Harga Jual/Unit <span class="required">*</span></label>
+                        <input type="number" name="selling_price" id="emSellingPrice" class="form-control" min="0" step="100" required>
+                        <div class="form-hint">Diperbarui di produk</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Jumlah <span class="required">*</span></label>
+                        <input type="number" name="quantity" id="emQuantity" class="form-control" min="1" required oninput="calcEmTotal()">
+                    </div>
+                </div>
+
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;margin-bottom:14px;text-align:right;">
+                    Total Nilai: <strong id="emTotal" style="font-size:16px;color:#16a34a;">Rp 0</strong>
+                </div>
+
+                <div class="form-row cols-2">
+                    <div class="form-group">
+                        <label class="form-label">Tanggal <span class="required">*</span></label>
+                        <input type="date" name="transaction_date" id="emDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">No. Invoice</label>
+                        <input type="text" name="invoice_number" id="emInvoice" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">Catatan</label>
+                    <textarea name="notes" id="emNotes" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalEditMasuk')">Batal</button>
+                <button type="submit" class="btn btn-warning"><i class="fas fa-save"></i> Perbarui Stok Masuk</button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -515,14 +597,14 @@ function showDetailMasuk(id) {
     document.getElementById('detailTitle').innerHTML =
         '<i class="fas fa-arrow-circle-down" style="color:#10b981"></i> ' + d.reference_number;
     const rows = [
-        ['Tanggal',         d.transaction_date],
+        ['Tanggal',         d.transaction_date_lbl || d.transaction_date],
         ['Produk',          '<strong>' + d.product_name + '</strong>'],
         ['Kode',            d.product_code],
         ['Supplier',        d.supplier_name],
-        ['Jumlah Diterima', '<span style="color:#10b981;font-weight:700;">+' + d.quantity + ' ' + d.unit_symbol + '</span>'],
-        ['Harga Beli/Unit', d.purchase_price],
+        ['Jumlah Diterima', '<span style="color:#10b981;font-weight:700;">+' + d.quantity_fmt + ' ' + d.unit_symbol + '</span>'],
+        ['Harga Beli/Unit', d.purchase_price_fmt],
         ['Total Nilai',     '<strong>' + d.total_price + '</strong>'],
-        ['No. Invoice',     d.invoice_number],
+        ['No. Invoice',     d.invoice_number || '-'],
         ['Dicatat Oleh',    d.user_name],
         ['Catatan',         d.notes],
     ];
@@ -531,11 +613,35 @@ function showDetailMasuk(id) {
     }).join('') + '<div style="margin-top:10px;font-size:11px;color:#94a3b8;">Dibuat: ' + d.created_at + '</div>';
     document.getElementById('detailFooter').innerHTML =
         '<button type="button" class="btn btn-secondary" onclick="closeModal(\'modalDetail\')">Tutup</button>' +
+        '<button type="button" class="btn btn-warning btn-sm" onclick="closeModal(\'modalDetail\');editMasuk(' + id + ')"><i class="fas fa-edit"></i> Edit</button>' +
         '<form method="POST" action="' + d.destroy_url + '" onsubmit="return confirmDelete(this)" style="display:inline;">' +
         '<input type="hidden" name="_token" value="{{ csrf_token() }}">' +
         '<input type="hidden" name="_method" value="DELETE">' +
         '<button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Hapus</button></form>';
     openModal('modalDetail');
+}
+
+// -- Edit stok masuk -----------------------------------
+function editMasuk(id) {
+    const d = stockInData[id]; if (!d) return;
+    document.getElementById('formEditMasuk').action = d.update_url;
+    document.getElementById('editMasukRef').textContent = d.reference_number;
+    document.getElementById('emSupplierId').value       = d.supplier_id || '';
+    document.getElementById('emPurchasePrice').value    = d.purchase_price;
+    document.getElementById('emSellingPrice').value     = d.selling_price;
+    document.getElementById('emQuantity').value         = d.quantity;
+    document.getElementById('emDate').value             = d.transaction_date;
+    document.getElementById('emInvoice').value          = (d.invoice_number === '-' ? '' : d.invoice_number);
+    document.getElementById('emNotes').value            = (d.notes === '-' ? '' : d.notes);
+    document.getElementById('editMasukProductName').textContent = d.product_name;
+    document.getElementById('editMasukProductInfo').style.display = '';
+    calcEmTotal();
+    openModal('modalEditMasuk');
+}
+function calcEmTotal() {
+    const q = parseInt(document.getElementById('emQuantity').value) || 0;
+    const p = parseInt(document.getElementById('emPurchasePrice').value) || 0;
+    document.getElementById('emTotal').textContent = 'Rp ' + (q * p).toLocaleString('id-ID');
 }
 
 // -- Detail modal SO -----------------------------------

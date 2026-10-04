@@ -120,6 +120,69 @@ class StokController extends Controller
             ->with('success', 'Stok masuk berhasil dicatat. Harga produk telah diperbarui.');
     }
 
+    // ── Edit Stok Masuk ──────────────────────────────────
+    public function updateMasuk(Request $request, StockIn $stockIn)
+    {
+        $data = $request->validate([
+            'quantity'         => ['required', 'integer', 'min:1'],
+            'purchase_price'   => ['required', 'numeric', 'min:0'],
+            'selling_price'    => ['required', 'numeric', 'min:0'],
+            'supplier_id'      => ['nullable', 'exists:suppliers,id'],
+            'transaction_date' => ['required', 'date'],
+            'invoice_number'   => ['nullable', 'string', 'max:100'],
+            'notes'            => ['nullable', 'string'],
+        ]);
+
+        try {
+            DB::transaction(function () use ($data, $stockIn) {
+                $product    = $stockIn->product;
+                $oldQty     = $stockIn->quantity;
+                $newQty     = (int) $data['quantity'];
+                $qtyDiff    = $newQty - $oldQty; // positif = tambah, negatif = kurangi
+
+                // Cek apakah pengurangan tidak bikin stok negatif
+                if ($qtyDiff < 0 && $product->stock < abs($qtyDiff)) {
+                    throw new \Exception(
+                        "Tidak bisa mengurangi: stok produk ({$product->stock}) lebih kecil dari selisih ({$qtyDiff})."
+                    );
+                }
+
+                // Update record stok masuk
+                $stockIn->update([
+                    'quantity'         => $newQty,
+                    'purchase_price'   => $data['purchase_price'],
+                    'total_price'      => $newQty * $data['purchase_price'],
+                    'supplier_id'      => $data['supplier_id'] ?? $stockIn->supplier_id,
+                    'transaction_date' => $data['transaction_date'],
+                    'invoice_number'   => $data['invoice_number'] ?? null,
+                    'notes'            => $data['notes'] ?? null,
+                ]);
+
+                // Koreksi stok produk berdasarkan selisih qty
+                if ($qtyDiff > 0) {
+                    $product->increment('stock', $qtyDiff);
+                } elseif ($qtyDiff < 0) {
+                    $product->decrement('stock', abs($qtyDiff));
+                }
+
+                // Update harga di produk
+                $product->update([
+                    'purchase_price' => $data['purchase_price'],
+                    'selling_price'  => $data['selling_price'],
+                ]);
+
+                ActivityLog::log('update', 'stock_in',
+                    "Edit stok masuk: {$product->name} qty {$oldQty} → {$newQty} (Ref: {$stockIn->reference_number})",
+                    $stockIn, ['quantity' => $oldQty], $data);
+            });
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('stok.index', ['tab' => 'masuk'])
+            ->with('success', 'Stok masuk berhasil diperbarui. Stok produk telah disesuaikan.');
+    }
+
     // ── Hapus Stok Masuk ─────────────────────────────────
     public function destroyMasuk(StockIn $stockIn)
     {
