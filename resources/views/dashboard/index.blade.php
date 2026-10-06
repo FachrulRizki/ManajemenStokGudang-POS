@@ -127,7 +127,7 @@
         <div style="padding:8px 0;">
             @foreach($topProducts as $i => $item)
             <div style="display:flex;align-items:center;gap:12px;padding:10px 20px;{{ !$loop->last ? 'border-bottom:1px solid #f1f5f9' : '' }}">
-                <div style="width:28px;height:28px;background:{{ ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6'][$i] }};border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;flex-shrink:0;">
+                <div style="width:28px;height:28px;background:{{ ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6'][$i % 5] }};border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;flex-shrink:0;">
                     {{ $i + 1 }}
                 </div>
                 <div style="flex:1;min-width:0;">
