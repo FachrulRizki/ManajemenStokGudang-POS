@@ -475,6 +475,21 @@ function searchProducts(val) {
 function renderDropdown(products) {
     const list = document.getElementById('autocompleteList');
     if (!products.length) { list.style.display = 'none'; return; }
+
+    // Sinkronkan semua hasil ke local PRODUCTS cache
+    products.forEach(p => {
+        PRODUCTS[p.id] = {
+            id:            p.id,
+            name:          p.name,
+            code:          p.code,
+            barcode:       p.barcode,
+            selling_price: p.selling_price,
+            stock:         p.stock,
+            unit:          p.unit,
+            image:         p.image_url ?? null,
+        };
+    });
+
     list.innerHTML = products.map(p => `
         <div class="autocomplete-item" onmousedown="addToCartFromSearch(${p.id}, event)">
             ${p.image_url ? `<img src="${p.image_url}" style="width:32px;height:32px;object-fit:cover;border-radius:4px;">` : `<div style="width:32px;height:32px;background:#f1f5f9;border-radius:4px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-box" style="font-size:14px;color:#cbd5e1;"></i></div>`}
@@ -580,11 +595,74 @@ document.getElementById('productSearch').addEventListener('keydown', e => {
         e.preventDefault();
         const val = e.target.value.trim();
         if (!val) return;
-        // Cari exact barcode match dulu
-        const exact = Object.values(PRODUCTS).find(p => p.barcode === val || p.code === val);
-        if (exact) { addToCart(exact.id); e.target.value = ''; hideDropdown(); }
+
+        // 1. Cari di local PRODUCTS cache dulu (trim untuk antisipasi whitespace di DB)
+        const exact = Object.values(PRODUCTS).find(
+            p => (p.barcode && p.barcode.trim() === val) || (p.code && p.code.trim() === val)
+        );
+
+        if (exact) {
+            addToCart(exact.id);
+            e.target.value = '';
+            hideDropdown();
+            return;
+        }
+
+        // 2. Fallback ke backend jika tidak ditemukan di local cache
+        fetch(SEARCH_URL + '?q=' + encodeURIComponent(val), {
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data || data.length === 0) {
+                // Tampilkan notifikasi kecil, bukan alert agar tidak ganggu alur kasir
+                showBarcodeNotFound(val);
+                e.target.value = '';
+                return;
+            }
+
+            // Ambil hasil pertama yang barcode/code-nya exact match
+            const found = data.find(
+                p => (p.barcode && p.barcode.trim() === val) || (p.code && p.code.trim() === val)
+            ) || data[0];
+
+            // Sinkronkan ke local PRODUCTS cache agar addToCart bisa akses
+            PRODUCTS[found.id] = {
+                id:            found.id,
+                name:          found.name,
+                code:          found.code,
+                barcode:       found.barcode,
+                selling_price: found.selling_price,
+                stock:         found.stock,
+                unit:          found.unit,
+                image:         found.image_url ?? null,
+            };
+
+            addToCart(found.id);
+            e.target.value = '';
+            hideDropdown();
+        })
+        .catch(() => {
+            showBarcodeNotFound(val);
+            e.target.value = '';
+        });
     }
 });
+
+// Notifikasi ringan produk tidak ditemukan (muncul 2 detik, tidak blokir alur)
+function showBarcodeNotFound(val) {
+    let notif = document.getElementById('barcodeNotif');
+    if (!notif) {
+        notif = document.createElement('div');
+        notif.id = 'barcodeNotif';
+        notif.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#ef4444;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.2);';
+        document.body.appendChild(notif);
+    }
+    notif.textContent = 'Produk tidak ditemukan: ' + val;
+    notif.style.display = 'block';
+    clearTimeout(notif._timer);
+    notif._timer = setTimeout(() => { notif.style.display = 'none'; }, 2000);
+}
 
 // -- Helper ----------------------------------------------
 function fmt(n) {
