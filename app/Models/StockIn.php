@@ -53,7 +53,12 @@ class StockIn extends Model
     public static function generateReferenceNumber(): string
     {
         $prefix = 'SI-' . date('Ymd');
-        $last   = static::where('reference_number', 'like', $prefix . '%')
+
+        // Gunakan lockForUpdate agar tidak ada dua request yang generate nomor sama
+        // (harus dipanggil di dalam DB::transaction)
+        $last = static::withTrashed()
+            ->where('reference_number', 'like', $prefix . '%')
+            ->lockForUpdate()
             ->orderBy('id', 'desc')
             ->first();
 

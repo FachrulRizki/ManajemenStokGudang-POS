@@ -118,6 +118,7 @@ class StockInController extends Controller
         ]);
 
         DB::transaction(function () use ($data) {
+            // Generate nomor referensi di dalam transaksi (lockForUpdate aktif)
             $data['reference_number'] = StockIn::generateReferenceNumber();
             $data['user_id']          = auth()->id();
             $data['total_price']      = $data['quantity'] * $data['purchase_price'];
