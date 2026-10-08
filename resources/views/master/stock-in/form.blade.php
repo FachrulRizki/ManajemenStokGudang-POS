@@ -97,7 +97,7 @@
 
                 <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:8px;border-top:1px solid #f1f5f9;margin-top:8px;">
                     <a href="{{ route('stock-in.index') }}" class="btn btn-secondary">Batal</a>
-                    <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Simpan Stok Masuk</button>
+                    <button type="submit" id="submitBtn" class="btn btn-success"><i class="fas fa-save"></i> Simpan Stok Masuk</button>
                 </div>
             </form>
         </div>
@@ -127,6 +127,13 @@ function calcTotal() {
 window.addEventListener('load', () => {
     const sel = document.getElementById('productSelect');
     if (sel.value) loadProductInfo(sel);
+});
+
+// Cegah double submit
+document.querySelector('form').addEventListener('submit', function () {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
 });
 </script>
 @endpush

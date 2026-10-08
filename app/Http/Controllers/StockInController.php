@@ -117,8 +117,8 @@ class StockInController extends Controller
             'notes'            => ['nullable', 'string'],
         ]);
 
-        DB::transaction(function () use ($data) {
-            // Generate nomor referensi di dalam transaksi (lockForUpdate aktif)
+        DB::transaction(function () use (&$data) {
+            // generateReferenceNumber menggunakan MySQL advisory lock agar atomic
             $data['reference_number'] = StockIn::generateReferenceNumber();
             $data['user_id']          = auth()->id();
             $data['total_price']      = $data['quantity'] * $data['purchase_price'];
