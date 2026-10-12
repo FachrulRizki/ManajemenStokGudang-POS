@@ -291,10 +291,19 @@ class PosController extends Controller
     public function receipt(Transaction $transaction)
     {
         $transaction->load(['items.product', 'paymentMethod', 'user', 'shift']);
-        $settings = \App\Models\AppSetting::getGroup('general');
+        $settings = \App\Models\AppSetting::getGroup('general') + \App\Models\AppSetting::getGroup('printer');
+
+        // Ukuran kertas sesuai setting (default A5)
+        $paperSizes = [
+            'A4'     => [0, 0, 595.276, 841.890],
+            'A5'     => [0, 0, 419.528, 595.276],
+            'Letter' => [0, 0, 612.000, 792.000],
+        ];
+        $paper = $settings['receipt_pdf_paper'] ?? 'A5';
+        $size  = $paperSizes[$paper] ?? $paperSizes['A5'];
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pos.receipt-pdf', compact('transaction', 'settings'))
-            ->setPaper([0, 0, 419.528, 595.276], 'portrait');  // A5
+            ->setPaper($size, 'portrait');
 
         return $pdf->stream("struk-{$transaction->invoice_number}.pdf");
     }
@@ -303,7 +312,7 @@ class PosController extends Controller
     public function thermal(Transaction $transaction)
     {
         $transaction->load(['items.product.unit', 'paymentMethod', 'user', 'shift']);
-        $settings = \App\Models\AppSetting::getGroup('general');
+        $settings = \App\Models\AppSetting::getGroup('general') + \App\Models\AppSetting::getGroup('printer');
 
         return view('pos.receipt-thermal', compact('transaction', 'settings'));
     }

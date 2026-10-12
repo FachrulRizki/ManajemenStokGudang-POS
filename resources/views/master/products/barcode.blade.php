@@ -5,6 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cetak Barcode — {{ $product->name }}</title>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+@php
+    $labelW    = (int)  \App\Models\AppSetting::get('barcode_label_width',   50);
+    $labelH    = (int)  \App\Models\AppSetting::get('barcode_label_height',  30);
+    $colsPerRow = (int) \App\Models\AppSetting::get('barcode_cols_per_row',   3);
+    // Ukuran label untuk preview layar: 1mm ≈ 3.78px (96dpi)
+    $labelWpx  = round($labelW  * 3.78);
+    $labelHpx  = round($labelH  * 3.78);
+    // Tinggi barcode: ~50% tinggi label
+    $barcodeH  = max(20, round($labelH * 0.5 * 3.78));
+    // Font sizes proporsional
+    $fontStore = max(7,  round($labelW * 0.16));
+    $fontName  = max(8,  round($labelW * 0.20));
+    $fontCode  = max(6,  round($labelW * 0.14));
+    $fontPrice = max(9,  round($labelW * 0.26));
+@endphp
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -14,7 +29,7 @@ body {
     padding: 20px;
 }
 
-/* Control bar — hanya tampil saat tidak print */
+/* Control bar */
 .no-print {
     background: #1e293b;
     color: #fff;
@@ -26,8 +41,8 @@ body {
     gap: 12px;
     flex-wrap: wrap;
 }
-.no-print h2 { font-size: 15px; font-weight: 600; flex: 1; }
-.no-print label { font-size: 13px; color: #94a3b8; }
+.no-print h2 { font-size: 15px; font-weight: 600; flex: 1; min-width: 200px; }
+.no-print label { font-size: 13px; color: #94a3b8; white-space: nowrap; }
 .no-print input[type=number] {
     width: 60px; padding: 6px 10px; border-radius: 6px; border: none;
     text-align: center; font-size: 14px; font-weight: 700;
@@ -40,6 +55,15 @@ body {
 .btn-print:hover { background: #4f46e5; }
 .btn-back  { background: rgba(255,255,255,.1); color: #fff; }
 .btn-back:hover { background: rgba(255,255,255,.2); }
+.size-badge {
+    background: rgba(99,102,241,.25);
+    color: #a5b4fc;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    white-space: nowrap;
+}
 
 /* Label grid */
 .labels-container {
@@ -49,37 +73,51 @@ body {
     justify-content: flex-start;
 }
 
-/* Satu label barcode */
+/* Satu label barcode — ukuran dari PHP setting */
 .label-card {
     background: #fff;
     border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 10px 12px;
+    border-radius: 6px;
+    padding: 5px 6px;
     text-align: center;
-    width: 200px;
+    width: {{ $labelWpx }}px;
+    min-height: {{ $labelHpx }}px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    gap: 2px;
     page-break-inside: avoid;
 }
-.label-store { font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: .05em; text-transform: uppercase; }
-.label-name  { font-size: 12px; font-weight: 700; color: #0f172a; line-height: 1.3; }
-.label-code  { font-size: 9px; color: #94a3b8; font-family: monospace; }
-.label-price { font-size: 16px; font-weight: 800; color: #1e293b; }
-.label-price span { font-size: 11px; font-weight: 600; }
-.barcode-svg  { width: 100%; max-width: 180px; height: 48px; }
+.label-store { font-size: {{ $fontStore }}px; font-weight: 700; color: #64748b; letter-spacing: .04em; text-transform: uppercase; line-height: 1.2; }
+.label-name  { font-size: {{ $fontName }}px; font-weight: 700; color: #0f172a; line-height: 1.2; }
+.label-code  { font-size: {{ $fontCode }}px; color: #94a3b8; font-family: monospace; }
+.label-price { font-size: {{ $fontPrice }}px; font-weight: 800; color: #1e293b; line-height: 1.2; }
+.label-price span { font-size: {{ max(7, $fontPrice - 4) }}px; font-weight: 600; }
+.barcode-svg { width: 100%; height: {{ $barcodeH }}px; }
 
 @media print {
-    body { background: #fff; padding: 8px; }
+    body { background: #fff; padding: 4mm; }
     .no-print { display: none !important; }
-    .labels-container { gap: 4px; }
-    .label-card {
-        border: 1px solid #ccc;
-        padding: 6px 8px;
-        width: 190px;
-        border-radius: 4px;
+    .labels-container {
+        gap: 2mm;
+        /* Grid dengan jumlah kolom dari setting */
+        display: grid;
+        grid-template-columns: repeat({{ $colsPerRow }}, {{ $labelW }}mm);
     }
+    .label-card {
+        border: 0.5pt solid #ccc;
+        border-radius: 2px;
+        padding: 1.5mm 2mm;
+        width: {{ $labelW }}mm;
+        min-height: {{ $labelH }}mm;
+    }
+    .label-store { font-size: {{ max(5, $fontStore - 1) }}pt; }
+    .label-name  { font-size: {{ max(6, $fontName - 1) }}pt; }
+    .label-code  { font-size: {{ max(5, $fontCode - 1) }}pt; }
+    .label-price { font-size: {{ max(7, $fontPrice - 2) }}pt; }
+    .label-price span { font-size: {{ max(5, $fontPrice - 6) }}pt; }
+    .barcode-svg { height: {{ max(12, round($labelH * 0.45)) }}mm; }
     @page { margin: 8mm; size: auto; }
 }
 </style>
@@ -87,14 +125,15 @@ body {
 <body>
 
 <div class="no-print">
-    <h2>Cetak Barcode — {{ $product->name }}</h2>
+    <h2>🏷️ Cetak Barcode — {{ $product->name }}</h2>
+    <span class="size-badge">{{ $labelW }} × {{ $labelH }} mm · {{ $colsPerRow }} kolom/baris</span>
     <label>Jumlah label:</label>
-    <input type="number" id="qty" value="1" min="1" max="100" onchange="renderLabels()">
+    <input type="number" id="qty" value="1" min="1" max="200" onchange="renderLabels()">
     <button class="btn-print" onclick="window.print()">
         🖨 Cetak Sekarang
     </button>
-    <button class="btn-back" onclick="window.close()">← Tutup</button>
-    <a href="{{ url()->previous() }}" style="color:#94a3b8;font-size:12px;text-decoration:none;margin-left:8px;">
+    <button class="btn-back" onclick="window.close()">✕ Tutup</button>
+    <a href="{{ url()->previous() }}" style="color:#94a3b8;font-size:12px;text-decoration:none;margin-left:4px;">
         ← Kembali ke Produk
     </a>
 </div>
@@ -111,12 +150,22 @@ const PRODUCT = {
     store:         {!! json_encode(\App\Models\AppSetting::get('app_name', config('app.name'))) !!},
 };
 
+// Ukuran dari setting (server-side)
+const LABEL_W_PX   = {{ $labelWpx }};
+const BARCODE_H_PX = {{ $barcodeH }};
+
 function formatRp(n) {
     return 'Rp ' + new Intl.NumberFormat('id-ID').format(n);
 }
 
+// Truncate nama produk proporsional terhadap lebar label
+function truncateName(name) {
+    const maxChars = Math.max(12, Math.floor({{ $labelW }} / 2.2));
+    return name.length > maxChars ? name.slice(0, maxChars) + '…' : name;
+}
+
 function renderLabels() {
-    const qty  = Math.max(1, Math.min(100, parseInt(document.getElementById('qty').value) || 1));
+    const qty = Math.max(1, Math.min(200, parseInt(document.getElementById('qty').value) || 1));
     const container = document.getElementById('labelsContainer');
     container.innerHTML = '';
 
@@ -130,10 +179,10 @@ function renderLabels() {
         store.textContent = PRODUCT.store;
         card.appendChild(store);
 
-        // Product name (truncate if long)
+        // Product name
         const name = document.createElement('div');
         name.className = 'label-name';
-        name.textContent = PRODUCT.name.length > 28 ? PRODUCT.name.slice(0, 28) + '…' : PRODUCT.name;
+        name.textContent = truncateName(PRODUCT.name);
         card.appendChild(name);
 
         // Barcode SVG
@@ -156,16 +205,16 @@ function renderLabels() {
 
         container.appendChild(card);
 
-        // Generate barcode ke SVG
+        // Generate barcode ke SVG — tinggi menyesuaikan ukuran label
         try {
             JsBarcode('#bc-' + i, PRODUCT.barcode, {
-                format:      'CODE128',
-                width:       1.5,
-                height:      40,
+                format:       'CODE128',
+                width:        Math.max(1, Math.floor(LABEL_W_PX / 80)),
+                height:       BARCODE_H_PX,
                 displayValue: false,
-                margin:      2,
-                lineColor:   '#1e293b',
-                background:  '#ffffff',
+                margin:       1,
+                lineColor:    '#1e293b',
+                background:   '#ffffff',
             });
         } catch (e) {
             svg.style.display = 'none';
@@ -175,7 +224,6 @@ function renderLabels() {
     }
 }
 
-// Render saat halaman load
 document.addEventListener('DOMContentLoaded', renderLabels);
 </script>
 </body>

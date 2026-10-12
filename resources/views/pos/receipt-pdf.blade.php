@@ -104,7 +104,7 @@ tfoot td { padding:7px 10px; font-size:12px; font-weight:600; }
 
 <div class="footer">
     ----------------------<br>
-    Terima kasih atas kepercayaan Anda!<br>
+    {{ $settings['receipt_footer_text'] ?? 'Terima kasih atas kepercayaan Anda!' }}<br>
     Simpan struk ini sebagai bukti pembelian.<br>
     ----------------------<br>
     Dicetak: {{ now()->format('d M Y H:i') }}

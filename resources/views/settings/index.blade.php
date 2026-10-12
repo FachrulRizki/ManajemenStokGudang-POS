@@ -59,7 +59,7 @@
             </div>
 
             {{-- Notifikasi --}}
-            <div class="card">
+            <div class="card" style="margin-bottom:20px;">
                 <div class="card-header">
                     <div class="card-title"><i class="fas fa-bell" style="color:#f59e0b"></i> Notifikasi & Preferensi</div>
                 </div>
@@ -75,6 +75,122 @@
                                     {{ old('low_stock_notif', ($settings['low_stock_notif']->value ?? '1') == '1') ? 'checked' : '' }}>
                                 <span class="toggle-slider"></span>
                             </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Pengaturan Printer --}}
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-print" style="color:#0ea5e9"></i> Pengaturan Printer & Cetak</div>
+                </div>
+                <div class="card-body">
+
+                    {{-- Struk Thermal --}}
+                    <div style="padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid #f1f5f9;">
+                        <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">
+                            🧾 Struk Thermal (Kasir)
+                        </div>
+                        <div class="form-row cols-2">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label">Lebar Kertas Thermal</label>
+                                @php $tw = (int)($settings['receipt_thermal_width']->value ?? 80); @endphp
+                                <div style="display:flex;gap:8px;">
+                                    @foreach([58 => '58mm (Kecil)', 80 => '80mm (Standar)'] as $val => $lbl)
+                                    <label style="flex:1;cursor:pointer;">
+                                        <input type="radio" name="receipt_thermal_width" value="{{ $val }}" style="display:none;"
+                                            {{ $tw == $val ? 'checked' : '' }}>
+                                        <div class="printer-option {{ $tw == $val ? 'selected' : '' }}"
+                                            data-val="{{ $val }}" data-group="thermal"
+                                            style="border:2px solid {{ $tw == $val ? 'var(--primary)' : '#e2e8f0' }};border-radius:8px;padding:10px;text-align:center;font-size:12.5px;font-weight:600;transition:all .15s;color:{{ $tw == $val ? 'var(--primary)' : '#64748b' }};">
+                                            <i class="fas fa-receipt" style="display:block;font-size:18px;margin-bottom:4px;"></i>
+                                            {{ $lbl }}
+                                        </div>
+                                    </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label">Tampilkan Logo di Struk</label>
+                                <div style="display:flex;align-items:center;gap:10px;padding-top:6px;">
+                                    <label class="toggle" style="margin:0;">
+                                        <input type="checkbox" name="receipt_show_logo" value="1"
+                                            {{ old('receipt_show_logo', ($settings['receipt_show_logo']->value ?? '1') == '1') ? 'checked' : '' }}>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                    <span style="font-size:12px;color:#64748b;">Logo toko tampil di bagian atas struk</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-top:12px;margin-bottom:0;">
+                            <label class="form-label">Teks Footer Struk</label>
+                            <input type="text" name="receipt_footer_text" class="form-control"
+                                value="{{ old('receipt_footer_text', $settings['receipt_footer_text']->value ?? 'Terima kasih atas kepercayaan Anda!') }}"
+                                placeholder="Teks penutup di bagian bawah struk" maxlength="300">
+                            <div class="form-hint">Muncul di bagian bawah struk thermal maupun PDF</div>
+                        </div>
+                    </div>
+
+                    {{-- Struk PDF --}}
+                    <div style="padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid #f1f5f9;">
+                        <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">
+                            📄 Struk PDF
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Ukuran Kertas PDF</label>
+                            @php $pp = $settings['receipt_pdf_paper']->value ?? 'A5'; @endphp
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                @foreach(['A4' => 'A4 (210×297mm)', 'A5' => 'A5 (148×210mm)', 'Letter' => 'Letter (216×279mm)'] as $val => $lbl)
+                                <label style="cursor:pointer;">
+                                    <input type="radio" name="receipt_pdf_paper" value="{{ $val }}" style="display:none;"
+                                        {{ $pp == $val ? 'checked' : '' }}>
+                                    <div class="printer-option {{ $pp == $val ? 'selected' : '' }}"
+                                        data-val="{{ $val }}" data-group="pdf"
+                                        style="border:2px solid {{ $pp == $val ? 'var(--primary)' : '#e2e8f0' }};border-radius:8px;padding:10px 16px;text-align:center;font-size:12.5px;font-weight:600;transition:all .15s;color:{{ $pp == $val ? 'var(--primary)' : '#64748b' }};">
+                                        <i class="fas fa-file-pdf" style="display:block;font-size:18px;margin-bottom:4px;"></i>
+                                        {{ $lbl }}
+                                    </div>
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Label Barcode --}}
+                    <div>
+                        <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">
+                            🏷️ Label Barcode Produk
+                        </div>
+                        <div class="form-row cols-3">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label">Lebar Label (mm)</label>
+                                <input type="number" name="barcode_label_width" class="form-control {{ $errors->has('barcode_label_width')?'is-invalid':'' }}"
+                                    value="{{ old('barcode_label_width', $settings['barcode_label_width']->value ?? 50) }}"
+                                    min="20" max="150" placeholder="50">
+                                @error('barcode_label_width')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label">Tinggi Label (mm)</label>
+                                <input type="number" name="barcode_label_height" class="form-control {{ $errors->has('barcode_label_height')?'is-invalid':'' }}"
+                                    value="{{ old('barcode_label_height', $settings['barcode_label_height']->value ?? 30) }}"
+                                    min="15" max="100" placeholder="30">
+                                @error('barcode_label_height')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label">Kolom Per Baris</label>
+                                <select name="barcode_cols_per_row" class="form-control">
+                                    @php $cols = (int)($settings['barcode_cols_per_row']->value ?? 3); @endphp
+                                    @foreach([1,2,3,4,5,6] as $n)
+                                    <option value="{{ $n }}" {{ $cols == $n ? 'selected' : '' }}>{{ $n }} kolom</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-top:10px;padding:10px 14px;background:#f8fafc;border-radius:8px;font-size:12px;color:#64748b;">
+                            <i class="fas fa-info-circle" style="color:#0ea5e9;margin-right:6px;"></i>
+                            Preview: label <strong id="lblPreviewSize">{{ $settings['barcode_label_width']->value ?? 50 }} × {{ $settings['barcode_label_height']->value ?? 30 }} mm</strong>
+                            — <strong id="lblPreviewCols">{{ $settings['barcode_cols_per_row']->value ?? 3 }} kolom</strong> per baris saat cetak
                         </div>
                     </div>
                 </div>
@@ -179,5 +295,42 @@ function applyTheme(theme) {
         el.style.borderColor = el.dataset.theme === theme ? colors[theme] : '#e2e8f0';
     });
 }
+
+// Printer option radio selection (visual highlight)
+document.querySelectorAll('.printer-option').forEach(el => {
+    el.addEventListener('click', function () {
+        const group = this.dataset.group;
+        // Deselect all in same group
+        document.querySelectorAll(`.printer-option[data-group="${group}"]`).forEach(o => {
+            o.style.borderColor = '#e2e8f0';
+            o.style.color = '#64748b';
+            o.classList.remove('selected');
+        });
+        // Select clicked
+        this.style.borderColor = 'var(--primary)';
+        this.style.color = 'var(--primary)';
+        this.classList.add('selected');
+        // Check the corresponding radio input
+        const val = this.dataset.val;
+        const name = group === 'thermal' ? 'receipt_thermal_width' : 'receipt_pdf_paper';
+        const radio = document.querySelector(`input[name="${name}"][value="${val}"]`);
+        if (radio) radio.checked = true;
+    });
+});
+
+// Barcode label size preview
+function updateLabelPreview() {
+    const w = document.querySelector('[name="barcode_label_width"]')?.value || 50;
+    const h = document.querySelector('[name="barcode_label_height"]')?.value || 30;
+    const c = document.querySelector('[name="barcode_cols_per_row"]')?.value || 3;
+    const sizeEl = document.getElementById('lblPreviewSize');
+    const colsEl = document.getElementById('lblPreviewCols');
+    if (sizeEl) sizeEl.textContent = `${w} × ${h} mm`;
+    if (colsEl) colsEl.textContent = `${c} kolom`;
+}
+
+document.querySelector('[name="barcode_label_width"]')?.addEventListener('input', updateLabelPreview);
+document.querySelector('[name="barcode_label_height"]')?.addEventListener('input', updateLabelPreview);
+document.querySelector('[name="barcode_cols_per_row"]')?.addEventListener('change', updateLabelPreview);
 </script>
 @endpush

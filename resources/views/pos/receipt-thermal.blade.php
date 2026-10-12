@@ -4,14 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Struk - {{ $transaction->invoice_number }}</title>
+@php
+    $thermalWidth = (int) ($settings['receipt_thermal_width'] ?? 80);
+    $footerText   = $settings['receipt_footer_text'] ?? 'Terima kasih atas kepercayaan Anda!';
+    $showLogo     = ($settings['receipt_show_logo'] ?? '1') == '1';
+    $widthMm      = $thermalWidth . 'mm';
+@endphp
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
     font-family: 'Courier New', Courier, monospace;
-    font-size: 12px;
+    font-size: {{ $thermalWidth >= 80 ? '12px' : '11px' }};
     color: #000;
     background: #fff;
-    width: 80mm;
+    width: {{ $widthMm }};
     margin: 0 auto;
     padding: 4mm;
 }
@@ -22,16 +28,16 @@ hr { border: none; border-top: 1px dashed #000; margin: 4px 0; }
 .item-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
 .item-name { flex: 1; }
 .item-qty  { width: 30px; text-align: center; }
-.item-price { width: 70px; text-align: right; }
+.item-price { width: {{ $thermalWidth >= 80 ? '70px' : '60px' }}; text-align: right; }
 .summary-row { display: flex; justify-content: space-between; }
 .summary-label { flex: 1; }
-.summary-value { width: 80px; text-align: right; font-weight: bold; }
-.grand { font-size: 14px; font-weight: bold; }
-.change-row { font-size: 13px; }
+.summary-value { width: {{ $thermalWidth >= 80 ? '80px' : '70px' }}; text-align: right; font-weight: bold; }
+.grand { font-size: {{ $thermalWidth >= 80 ? '14px' : '13px' }}; font-weight: bold; }
+.change-row { font-size: {{ $thermalWidth >= 80 ? '13px' : '12px' }}; }
 @media print {
-    body { width: 80mm; }
+    body { width: {{ $widthMm }}; }
     .no-print { display: none; }
-    @page { size: 80mm auto; margin: 0; }
+    @page { size: {{ $widthMm }} auto; margin: 0; }
 }
 </style>
 </head>
@@ -86,7 +92,7 @@ hr { border: none; border-top: 1px dashed #000; margin: 4px 0; }
 <hr>
 
 <div class="center" style="font-size:11px;margin-top:4px;line-height:1.6;">
-    Terima kasih atas kunjungan Anda!<br>
+    {{ $footerText }}<br>
     Barang yang sudah dibeli tidak<br>
     dapat dikembalikan.
 </div>
