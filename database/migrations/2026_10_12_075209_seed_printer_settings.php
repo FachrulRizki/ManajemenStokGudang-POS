@@ -10,9 +10,9 @@ return new class extends Migration
         $printerSettings = [
             ['key' => 'receipt_thermal_width', 'value' => '80',  'type' => 'integer', 'group' => 'printer', 'label' => 'Lebar Struk Thermal (mm)'],
             ['key' => 'receipt_pdf_paper',     'value' => 'A5',  'type' => 'string',  'group' => 'printer', 'label' => 'Ukuran Kertas Struk PDF'],
-            ['key' => 'barcode_label_width',   'value' => '40',  'type' => 'integer', 'group' => 'printer', 'label' => 'Lebar Label Barcode (mm)'],
-            ['key' => 'barcode_label_height',  'value' => '25',  'type' => 'integer', 'group' => 'printer', 'label' => 'Tinggi Label Barcode (mm)'],
-            ['key' => 'barcode_cols_per_row',  'value' => '4',   'type' => 'integer', 'group' => 'printer', 'label' => 'Kolom Label Per Baris'],
+            ['key' => 'barcode_label_width',   'value' => '100', 'type' => 'integer', 'group' => 'printer', 'label' => 'Lebar Label Barcode (mm)'],
+            ['key' => 'barcode_label_height',  'value' => '33',  'type' => 'integer', 'group' => 'printer', 'label' => 'Tinggi Label Barcode (mm)'],
+            ['key' => 'barcode_cols_per_row',  'value' => '1',   'type' => 'integer', 'group' => 'printer', 'label' => 'Kolom Label Per Baris'],
             ['key' => 'receipt_show_logo',     'value' => '1',   'type' => 'boolean', 'group' => 'printer', 'label' => 'Tampilkan Logo di Struk'],
             ['key' => 'receipt_footer_text',   'value' => 'Terima kasih atas kepercayaan Anda!', 'type' => 'string', 'group' => 'printer', 'label' => 'Teks Footer Struk'],
         ];

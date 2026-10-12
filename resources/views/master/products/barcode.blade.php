@@ -6,35 +6,53 @@
 <title>Cetak Barcode — {{ $product->name }}</title>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 @php
-    $labelW     = (int) \App\Models\AppSetting::get('barcode_label_width',  40);
-    $labelH     = (int) \App\Models\AppSetting::get('barcode_label_height', 25);
-    $colsPerRow = (int) \App\Models\AppSetting::get('barcode_cols_per_row',  4);
+    $labelW     = (int) \App\Models\AppSetting::get('barcode_label_width',  100);
+    $labelH     = (int) \App\Models\AppSetting::get('barcode_label_height',  33);
+    $colsPerRow = (int) \App\Models\AppSetting::get('barcode_cols_per_row',   1);
 
-    // 1mm ≈ 3.7795px pada 96dpi
-    $px         = 3.7795;
-    $labelWpx   = round($labelW * $px);
-    $labelHpx   = round($labelH * $px);
+    // 1mm = 3.7795px @ 96dpi
+    $px        = 3.7795;
+    $labelWpx  = round($labelW * $px);
+    $labelHpx  = round($labelH * $px);
 
-    // Proporsi konten dalam label:
-    // ~25% teks atas (nama toko + produk), ~45% barcode, ~15% kode, ~15% harga
-    $barcodeHpx = round($labelH * 0.38 * $px);   // barcode area
-    $barcodeHmm = round($labelH * 0.38);
+    // Distribusi tinggi (dalam mm):
+    //   padding atas+bawah : 2 × 1.5mm = 3mm
+    //   nama toko           : ~22% tinggi label (dalam pt, 1pt=0.353mm)
+    //   nama produk         : ~25%
+    //   gap antar elemen    : ~3mm total
+    //   barcode             : sisa — harga dan kode sudah ditetapkan di bawah
+    //   kode barcode        : ~17%
+    //   harga               : ~26%
 
-    // Font (pt) untuk print — 1pt ≈ 0.353mm
-    $fontStorePt = max(4.5, round($labelW * 0.095, 1));
-    $fontNamePt  = max(5.0, round($labelW * 0.110, 1));
-    $fontCodePt  = max(4.0, round($labelW * 0.082, 1));
-    $fontPricePt = max(6.0, round($labelW * 0.140, 1));
+    $padV = 1.5;   // mm, atas & bawah — fixed agar predictable
+    $padH = max(2, round($labelW * 0.025, 1));
 
-    // Font (px) untuk preview layar ≈ pt * 1.333
-    $fontStorePx = max(6,  round($fontStorePt * 1.333));
-    $fontNamePx  = max(7,  round($fontNamePt  * 1.333));
-    $fontCodePx  = max(5,  round($fontCodePt  * 1.333));
-    $fontPricePx = max(8,  round($fontPricePt * 1.333));
+    // Font dalam pt (1pt = 0.353mm)
+    // Dikecilkan sedikit agar ada ruang nafas, tidak mepet
+    $fontStorePt = round($labelH * 0.19, 1);   // ~6.3pt pada 33mm
+    $fontNamePt  = round($labelH * 0.21, 1);   // ~6.9pt
+    $fontCodePt  = round($labelH * 0.15, 1);   // ~5.0pt
+    $fontPricePt = round($labelH * 0.25, 1);   // ~8.3pt
 
-    // Padding dalam label (mm)
-    $padV = max(1, round($labelH * 0.06));
-    $padH = max(1, round($labelW * 0.05));
+    // Estimasi tinggi setiap elemen (mm) = font-size-pt × 0.353 × line-height(1.25)
+    $lh          = 1.25;
+    $hStore      = round($fontStorePt * 0.353 * $lh, 2);
+    $hName       = round($fontNamePt  * 0.353 * $lh, 2);
+    $hCode       = round($fontCodePt  * 0.353 * $lh, 2);
+    $hPrice      = round($fontPricePt * 0.353 * $lh, 2);
+    $hGaps       = 1.5;  // total gap kecil antar elemen
+
+    // Sisa untuk barcode setelah semua elemen + padding
+    $barcodeHmm  = max(8, round(
+        $labelH - ($padV * 2) - $hStore - $hName - $hCode - $hPrice - $hGaps
+    , 1));
+
+    // px untuk preview layar
+    $barcodeHpx  = round($barcodeHmm * $px);
+    $fontStorePx = round($fontStorePt * 1.333);
+    $fontNamePx  = round($fontNamePt  * 1.333);
+    $fontCodePx  = round($fontCodePt  * 1.333);
+    $fontPricePx = round($fontPricePt * 1.333);
 @endphp
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -57,7 +75,7 @@ body {
     gap: 12px;
     flex-wrap: wrap;
 }
-.no-print h2  { font-size: 15px; font-weight: 600; flex: 1; min-width: 180px; }
+.no-print h2 { font-size: 15px; font-weight: 600; flex: 1; min-width: 180px; }
 .no-print label { font-size: 13px; color: #94a3b8; white-space: nowrap; }
 .no-print input[type=number] {
     width: 60px; padding: 6px 10px; border-radius: 6px; border: none;
@@ -101,23 +119,20 @@ body {
     page-break-inside: avoid;
 }
 
-/* Teks atas: nama toko & produk */
 .label-header {
     width: 100%;
     text-align: center;
-    line-height: 1.25;
-    overflow: hidden;
+    line-height: 1.3;
 }
 .label-store {
     font-size:   {{ $fontStorePx }}px;
     font-weight: 800;
     color: #374151;
     text-transform: uppercase;
-    letter-spacing: .02em;
+    letter-spacing: .04em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 100%;
     display: block;
 }
 .label-name {
@@ -127,11 +142,9 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 100%;
     display: block;
 }
 
-/* Barcode */
 .label-barcode {
     width: 100%;
     display: flex;
@@ -144,11 +157,10 @@ body {
     font-size:   {{ $fontCodePx }}px;
     color: #6b7280;
     font-family: 'Courier New', monospace;
-    letter-spacing: .02em;
+    letter-spacing: .03em;
     white-space: nowrap;
 }
 
-/* Harga — satu baris, tidak wrap */
 .label-price {
     font-size:   {{ $fontPricePx }}px;
     font-weight: 800;
@@ -157,7 +169,7 @@ body {
     line-height: 1;
 }
 .label-price .unit {
-    font-size:   {{ max(5, $fontPricePx - 3) }}px;
+    font-size:   {{ max(7, $fontPricePx - 4) }}px;
     font-weight: 500;
     color: #6b7280;
 }
@@ -175,23 +187,30 @@ body {
     }
 
     .label-card {
-        width:      {{ $labelW }}mm;
-        min-height: {{ $labelH }}mm;
-        max-height: {{ $labelH }}mm;
-        border:     0.3pt solid #aaa;
+        width:    {{ $labelW }}mm;
+        height:   {{ $labelH }}mm;
+        border:   0.3pt solid #999;
         border-radius: 1px;
-        padding:    {{ $padV }}mm {{ $padH }}mm;
-        overflow:   hidden;
+        padding:  {{ $padV }}mm {{ $padH }}mm;
+        /* Jangan overflow:hidden — biarkan konten tampil, hanya potong kalau benar-benar keluar */
+        overflow: visible;
+        /* Pastikan tidak ada page break di tengah label */
+        page-break-inside: avoid;
+        break-inside: avoid;
     }
 
-    .label-store { font-size: {{ $fontStorePt }}pt; }
-    .label-name  { font-size: {{ $fontNamePt }}pt; }
-    .label-code  { font-size: {{ $fontCodePt }}pt; }
-    .label-price { font-size: {{ $fontPricePt }}pt; }
-    .label-price .unit { font-size: {{ max(3.5, $fontPricePt - 2) }}pt; }
+    .label-store { font-size: {{ $fontStorePt }}pt; line-height: 1.25; }
+    .label-name  { font-size: {{ $fontNamePt }}pt;  line-height: 1.25; }
+    .label-code  { font-size: {{ $fontCodePt }}pt;  line-height: 1.25; }
+    .label-price { font-size: {{ $fontPricePt }}pt; line-height: 1.25; }
+    .label-price .unit { font-size: {{ max(4, $fontPricePt - 3) }}pt; }
     .barcode-svg { height: {{ $barcodeHmm }}mm; }
 
-    @page { size: auto; margin: 5mm; }
+    /* Gap antar elemen diperkecil saat print */
+    .label-barcode { gap: 0.5px; }
+    .label-header  { line-height: 1.2; }
+
+    @page { size: {{ $labelW }}mm {{ $labelH }}mm; margin: 0; }
 }
 </style>
 </head>
@@ -202,62 +221,9 @@ body {
     <span class="size-badge">{{ $labelW }} × {{ $labelH }} mm &nbsp;·&nbsp; {{ $colsPerRow }} kolom/baris</span>
     <label>Jumlah label:</label>
     <input type="number" id="qty" value="1" min="1" max="200" onchange="renderLabels()">
-    <button class="btn-print" onclick="showPrintGuide()">🖨 Cetak Sekarang</button>
+    <button class="btn-print" onclick="window.print()">🖨 Cetak Sekarang</button>
     <button class="btn-back"  onclick="window.close()">✕ Tutup</button>
     <a href="{{ url()->previous() }}" style="color:#94a3b8;font-size:12px;text-decoration:none;">← Kembali</a>
-</div>
-
-{{-- Panduan setting dialog print --}}
-<div id="printGuide" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
-    <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);">
-        <div style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:4px;">🖨 Setting Dialog Print Browser</div>
-        <div style="font-size:12px;color:#64748b;margin-bottom:18px;">Pastikan pengaturan ini benar agar label tercetak sesuai ukuran stiker</div>
-
-        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-            <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:#f8fafc;border-radius:8px;border-left:3px solid #6366f1;">
-                <span style="font-size:18px;flex-shrink:0;">📄</span>
-                <div>
-                    <div style="font-size:12px;font-weight:700;color:#374151;">Ukuran Kertas</div>
-                    <div style="font-size:12px;color:#64748b;margin-top:2px;">Pilih <strong>"Custom"</strong> lalu isi <strong>{{ $labelW }} mm × {{ $labelH }} mm</strong><br>
-                    <span style="font-size:11px;color:#94a3b8;">(atau ukuran stiker yang dipakai)</span></div>
-                </div>
-            </div>
-            <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:#f8fafc;border-radius:8px;border-left:3px solid #10b981;">
-                <span style="font-size:18px;flex-shrink:0;">📐</span>
-                <div>
-                    <div style="font-size:12px;font-weight:700;color:#374151;">Margin</div>
-                    <div style="font-size:12px;color:#64748b;margin-top:2px;">Set ke <strong>"None"</strong> atau <strong>"Minimum"</strong></div>
-                </div>
-            </div>
-            <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:#f8fafc;border-radius:8px;border-left:3px solid #f59e0b;">
-                <span style="font-size:18px;flex-shrink:0;">📏</span>
-                <div>
-                    <div style="font-size:12px;font-weight:700;color:#374151;">Skala</div>
-                    <div style="font-size:12px;color:#64748b;margin-top:2px;">Set ke <strong>"100%"</strong> (jangan "Fit to page")</div>
-                </div>
-            </div>
-            <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:#f8fafc;border-radius:8px;border-left:3px solid #ef4444;">
-                <span style="font-size:18px;flex-shrink:0;">🎨</span>
-                <div>
-                    <div style="font-size:12px;font-weight:700;color:#374151;">Header & Footer</div>
-                    <div style="font-size:12px;color:#64748b;margin-top:2px;">Matikan <strong>"Headers and footers"</strong></div>
-                </div>
-            </div>
-        </div>
-
-        <div style="font-size:11px;color:#94a3b8;margin-bottom:18px;padding:8px 12px;background:#fafafa;border-radius:6px;line-height:1.6;">
-            💡 Untuk printer label khusus (Zebra, EPSON LX, Argox, dll) — pilih nama printer tersebut di dialog print. Ukuran stiker biasanya sudah terdeteksi otomatis.
-        </div>
-
-        <div style="display:flex;gap:10px;">
-            <button onclick="doPrint()" style="flex:1;padding:11px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">
-                Lanjut Cetak →
-            </button>
-            <button onclick="document.getElementById('printGuide').style.display='none'" style="padding:11px 18px;background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;cursor:pointer;">
-                Batal
-            </button>
-        </div>
-    </div>
 </div>
 
 <div class="labels-container" id="labelsContainer"></div>
@@ -271,18 +237,18 @@ const PRODUCT = {
     store:         {!! json_encode(\App\Models\AppSetting::get('app_name', config('app.name'))) !!},
 };
 
-const LABEL_W_PX    = {{ $labelWpx }};
-const BARCODE_H_PX  = {{ $barcodeHpx }};
-const LABEL_W_MM    = {{ $labelW }};
+const LABEL_W_PX   = {{ $labelWpx }};
+const BARCODE_H_PX = {{ $barcodeHpx }};
+const LABEL_W_MM   = {{ $labelW }};
+const FONT_NAME_PT = {{ $fontNamePt }};
 
 function formatRp(n) {
     return 'Rp\u00A0' + new Intl.NumberFormat('id-ID').format(n);
 }
 
-// Truncate agar tidak wrap — maks karakter proporsional lebar label
-function fitText(text, mmWidth) {
-    // Asumsi font Arial ~0.55mm per karakter pada ukuran fontName
-    const max = Math.floor(mmWidth / ({{ $fontNamePt }} * 0.38));
+function fitText(text) {
+    // estimasi karakter maks berdasar lebar dan font
+    const max = Math.floor(LABEL_W_MM / (FONT_NAME_PT * 0.42));
     return text.length > max ? text.slice(0, max - 1) + '…' : text;
 }
 
@@ -295,7 +261,7 @@ function renderLabels() {
         const card = document.createElement('div');
         card.className = 'label-card';
 
-        // ── Header: toko + nama produk ──
+        // Header
         const header = document.createElement('div');
         header.className = 'label-header';
 
@@ -306,11 +272,11 @@ function renderLabels() {
 
         const name = document.createElement('span');
         name.className = 'label-name';
-        name.textContent = fitText(PRODUCT.name, LABEL_W_MM);
+        name.textContent = fitText(PRODUCT.name);
         header.appendChild(name);
         card.appendChild(header);
 
-        // ── Barcode + kode ──
+        // Barcode
         const barcodeWrap = document.createElement('div');
         barcodeWrap.className = 'label-barcode';
 
@@ -325,7 +291,7 @@ function renderLabels() {
         barcodeWrap.appendChild(codeDiv);
         card.appendChild(barcodeWrap);
 
-        // ── Harga (satu baris, no-wrap) ──
+        // Harga
         const price = document.createElement('div');
         price.className = 'label-price';
         price.innerHTML = formatRp(PRODUCT.selling_price)
@@ -334,12 +300,10 @@ function renderLabels() {
 
         container.appendChild(card);
 
-        // Render barcode
         try {
             JsBarcode('#bc-' + i, PRODUCT.barcode, {
                 format:       'CODE128',
-                // Bar width: 1px per ~60px label width — minimal 1
-                width:        Math.max(1, Math.floor(LABEL_W_PX / 70)),
+                width:        Math.max(1.2, LABEL_W_PX / 120),
                 height:       BARCODE_H_PX,
                 displayValue: false,
                 margin:       0,
@@ -355,21 +319,6 @@ function renderLabels() {
 }
 
 document.addEventListener('DOMContentLoaded', renderLabels);
-
-function showPrintGuide() {
-    const guide = document.getElementById('printGuide');
-    guide.style.display = 'flex';
-}
-
-function doPrint() {
-    document.getElementById('printGuide').style.display = 'none';
-    setTimeout(() => window.print(), 150);
-}
-
-// Tutup modal kalau klik di luar box
-document.getElementById('printGuide')?.addEventListener('click', function(e) {
-    if (e.target === this) this.style.display = 'none';
-});
 </script>
 </body>
 </html>
